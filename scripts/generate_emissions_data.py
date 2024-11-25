@@ -60,16 +60,16 @@ EMISSION_FACTORS = {
 
 # Activities that can generate emissions
 ACTIVITIES = {
-    'ACT001': {'name': 'office_power', 'emission_factor_id': 'EF001', 'base_amount': 1000, 'variance': 200},
-    'ACT002': {'name': 'heating', 'emission_factor_id': 'EF002', 'base_amount': 100, 'variance': 30},
-    'ACT003': {'name': 'company_cars', 'emission_factor_id': 'EF003', 'base_amount': 150, 'variance': 50},
-    'ACT004': {'name': 'delivery_trucks', 'emission_factor_id': 'EF004', 'base_amount': 400, 'variance': 100},
-    'ACT005': {'name': 'business_flights_short', 'emission_factor_id': 'EF005', 'base_amount': 800, 'variance': 200},
-    'ACT006': {'name': 'business_flights_long', 'emission_factor_id': 'EF006', 'base_amount': 2000, 'variance': 500},
-    'ACT007': {'name': 'train_travel', 'emission_factor_id': 'EF007', 'base_amount': 500, 'variance': 100},
-    'ACT008': {'name': 'general_waste', 'emission_factor_id': 'EF008', 'base_amount': 1000, 'variance': 200},
-    'ACT009': {'name': 'recycling', 'emission_factor_id': 'EF009', 'base_amount': 800, 'variance': 150},
-    'ACT010': {'name': 'water_consumption', 'emission_factor_id': 'EF010', 'base_amount': 100, 'variance': 20}
+    'ACT001': {'name': 'office_power_usa', 'emission_factor_id': 'EF001', 'base_amount': 1000, 'variance': 200},
+    'ACT002': {'name': 'office_power_eu', 'emission_factor_id': 'EF002', 'base_amount': 1000, 'variance': 200},
+    'ACT003': {'name': 'natural_gas_usage', 'emission_factor_id': 'EF010', 'base_amount': 150, 'variance': 50},
+    'ACT004': {'name': 'company_vehicles', 'emission_factor_id': 'EF020', 'base_amount': 400, 'variance': 100},
+    'ACT005': {'name': 'delivery_fleet', 'emission_factor_id': 'EF024', 'base_amount': 800, 'variance': 200},
+    'ACT006': {'name': 'business_flights_domestic', 'emission_factor_id': 'EF030', 'base_amount': 2000, 'variance': 500},
+    'ACT007': {'name': 'business_flights_international', 'emission_factor_id': 'EF032', 'base_amount': 5000, 'variance': 1000},
+    'ACT008': {'name': 'waste_management_usa', 'emission_factor_id': 'EF040', 'base_amount': 1000, 'variance': 200},
+    'ACT009': {'name': 'paper_recycling', 'emission_factor_id': 'EF042', 'base_amount': 800, 'variance': 150},
+    'ACT010': {'name': 'water_usage', 'emission_factor_id': 'EF050', 'base_amount': 100, 'variance': 20}
 }
 
 # Facilities
