@@ -167,11 +167,8 @@ class DuckLLMContext:
         self.messages.append({"role": "assistant", "content": content})
 
         if self.verbose:
-            # Extract and display query planning if present
-            planning_match = re.search(r'<query_planning>(.*?)</query_planning>', content, re.DOTALL)
-            if planning_match:
-                click.echo("\nLLM Reasoning:")
-                click.echo(planning_match.group(1).strip())
+            click.echo("\nLLM Response:")
+            click.echo(content)
         
         # Extract SQL query from <answer> tags
         match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
