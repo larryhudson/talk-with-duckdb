@@ -12,6 +12,7 @@ class DuckLLMContext:
     def __init__(self):
         self.conn = None
         self.model = os.getenv("LLM_MODEL", "gpt-4")  # Default to GPT-4 but allow override
+        self.verbose = False
 
     def get_schema_info(self):
         if not self.conn:
@@ -23,7 +24,11 @@ class DuckLLMContext:
             columns = self.conn.execute(f"DESCRIBE {table_name}").fetchall()
             cols_info = [f"{col[0]} {col[1]}" for col in columns]
             schema_info.append(f"Table: {table_name}\nColumns: {', '.join(cols_info)}")
-        return "\n\n".join(schema_info)
+        schema_text = "\n\n".join(schema_info)
+        if self.verbose:
+            click.echo("\nSchema Information:")
+            click.echo(schema_text)
+        return schema_text
 
     def generate_sql(self, question, schema_info):
         prompt = f"""Given the following database schema:
@@ -44,6 +49,11 @@ For example:
 <answer>
 SELECT * FROM table;
 </answer>"""
+
+        if self.verbose:
+            click.echo("\nSending prompt to LLM:")
+            click.echo(prompt)
+            click.echo("\nWaiting for LLM response...")
 
         response = completion(
             model=self.model,
@@ -94,6 +104,7 @@ def cli(ctx):
 def query(ctx_obj, file_path, question, analyze, verbose):
     """Query a DuckDB database using natural language"""
     file_path = Path(file_path)
+    ctx_obj.verbose = verbose
     
     if verbose:
         click.echo("Connecting to database...")
