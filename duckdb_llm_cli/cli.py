@@ -150,23 +150,47 @@ def query(ctx_obj, file_path, question, analyze, interactive, verbose):
             if verbose:
                 click.echo(f"Processing CSV file...")
             
-            table_name = file_path.stem
-            cache_path = ctx_obj.get_parquet_cache_path(file_path)
+            # Get the directory containing the main CSV file
+            data_dir = file_path.parent
             
+            # Load all related CSV files if they exist
+            main_table = file_path.stem
+            ef_path = data_dir / "emission_factors.csv"
+            act_path = data_dir / "activities.csv"
+            
+            # Load main emissions data
+            cache_path = ctx_obj.get_parquet_cache_path(file_path)
             if cache_path.exists():
                 if verbose:
                     click.echo(f"Using cached Parquet file: {cache_path}")
-                ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM parquet_scan('{cache_path}')")
+                ctx_obj.conn.execute(f"CREATE TABLE {main_table} AS SELECT * FROM parquet_scan('{cache_path}')")
             else:
                 if verbose:
                     click.echo(f"Creating new Parquet cache from CSV...")
-                # Load CSV and create Parquet cache
                 ctx_obj.conn.execute(f"""
-                    CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}');
-                    COPY (SELECT * FROM {table_name}) TO '{cache_path}' (FORMAT PARQUET);
+                    CREATE TABLE {main_table} AS SELECT * FROM read_csv_auto('{file_path}');
+                    COPY (SELECT * FROM {main_table}) TO '{cache_path}' (FORMAT PARQUET);
                 """)
                 if verbose:
                     click.echo(f"Created Parquet cache: {cache_path}")
+            
+            # Load emission factors if available
+            if ef_path.exists():
+                if verbose:
+                    click.echo("Loading emission factors data...")
+                ctx_obj.conn.execute(
+                    "CREATE TABLE emission_factors AS SELECT * FROM read_csv_auto(?)",
+                    [str(ef_path)]
+                )
+            
+            # Load activities if available
+            if act_path.exists():
+                if verbose:
+                    click.echo("Loading activities data...")
+                ctx_obj.conn.execute(
+                    "CREATE TABLE activities AS SELECT * FROM read_csv_auto(?)",
+                    [str(act_path)]
+                )
             
             if verbose:
                 click.echo(f"Created table: {table_name}")
