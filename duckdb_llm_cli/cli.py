@@ -72,33 +72,23 @@ class DuckLLMContext:
         return schema_text
 
     def generate_sql(self, question, schema_info):
-        prompt = f"""Given the following database schema:
-
-{schema_info}
-
-Generate a SQL query to answer this question: {question}
-
-Think through the solution step by step, putting your reasoning in <reasoning></reasoning> tags.
-Then put your final SQL query in <answer></answer> tags.
-
-For example:
-<reasoning>
-1. First we need to...
-2. Then we should...
-3. Finally we...
-</reasoning>
-<answer>
-SELECT * FROM table;
-</answer>"""
+        messages = [
+            {"role": "system", "content": """You are a SQL expert that helps convert natural language questions into SQL queries.
+Always think through the solution step by step and explain your reasoning in <reasoning></reasoning> tags.
+Then provide your final SQL query in <answer></answer> tags."""},
+            {"role": "user", "content": f"Here is the database schema:\n\n{schema_info}"},
+            {"role": "user", "content": f"Generate a SQL query to answer this question: {question}"}
+        ]
 
         if self.verbose:
-            click.echo("\nSending prompt to LLM:")
-            click.echo(prompt)
+            click.echo("\nSending messages to LLM:")
+            for msg in messages:
+                click.echo(f"\n{msg['role']}: {msg['content']}")
             click.echo("\nWaiting for LLM response...")
 
         response = completion(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=messages
         )
         content = response.choices[0].message.content.strip()
         
@@ -112,33 +102,27 @@ SELECT * FROM table;
     def analyze_results(self, question, data, schema_info, previous_context=None):
         data_str = data.to_string()
         
+        messages = [
+            {"role": "system", "content": "You are a data analyst expert that helps analyze and explain SQL query results."},
+            {"role": "user", "content": f"Here is the database schema:\n\n{schema_info}"},
+            {"role": "user", "content": f"Here are the query results:\n\n{data_str}"}
+        ]
+        
         if previous_context:
-            prompt = f"""Given the following database schema and query results:
-
-Schema:
-{schema_info}
-
-Previous Context:
-{previous_context}
-
-Current Query Results:
-{data_str}
-
-Please answer this follow-up question: {question}"""
+            messages.append({"role": "user", "content": f"Previous context:\n{previous_context}"})
+            messages.append({"role": "user", "content": f"Please answer this follow-up question: {question}"})
         else:
-            prompt = f"""Given the following database schema and query results:
+            messages.append({"role": "user", "content": f"Please analyze these results to answer: {question}"})
 
-Schema:
-{schema_info}
-
-Query Results:
-{data_str}
-
-Please answer this question: {question}"""
+        if self.verbose:
+            click.echo("\nSending messages to LLM:")
+            for msg in messages:
+                click.echo(f"\n{msg['role']}: {msg['content']}")
+            click.echo("\nWaiting for LLM response...")
 
         response = completion(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=messages
         )
         return response.choices[0].message.content.strip()
 
