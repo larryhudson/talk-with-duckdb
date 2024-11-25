@@ -9,7 +9,7 @@ import hashlib
 
 load_dotenv()
 
-def fill_prompt(schema, question):
+def generate_query_prompt(schema, question):
     return """
 You are an AI assistant specialized in generating SQL queries for a DuckDB database based on natural language questions from users. Your primary goal is to help users explore and gain insights from their data.
 
@@ -70,6 +70,15 @@ Please provide your response following the structure outlined above. After your 
 
 Remember, your goal is to help the user explore the data and gain valuable insights through thoughtful and effective SQL queries.
 """
+
+def analyze_results_prompt(results):
+    return f"""
+    The DuckDB database responded with these results:
+    {results}
+
+
+    Please use these results to help answer the user's original question.
+    """
 
 
 class DuckLLMContext:
@@ -138,7 +147,7 @@ class DuckLLMContext:
     def generate_sql(self, question, schema_info):
         # Reset conversation history for new query
         self.messages = [
-            {"role": "user", "content": fill_prompt(schema_info, question)},
+            {"role": "user", "content": generate_query_prompt(schema_info, question)},
         ]
 
         if self.verbose:
@@ -168,12 +177,9 @@ class DuckLLMContext:
         data_str = data.to_string()
         
         # Add analysis request to conversation history
-        self.messages.extend([
-            {"role": "system", "content": "You are a data analyst expert that helps analyze and explain SQL query results."},
-            {"role": "user", "content": f"Here is the database schema:\n\n{schema_info}"},
-            {"role": "user", "content": f"Here are the query results:\n\n{data_str}"},
-            {"role": "user", "content": f"Please analyze these results to answer: {question}"}
-        ])
+        self.messages.append(
+            {"role": "user", "content": analyze_results_prompt(data_str)},
+        )
 
         if self.verbose:
             click.echo("\nSending messages to LLM:")
