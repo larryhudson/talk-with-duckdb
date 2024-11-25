@@ -79,9 +79,24 @@ SELECT * FROM table;
             
         return match.group(1).strip()
 
-    def analyze_results(self, question, data, schema_info):
+    def analyze_results(self, question, data, schema_info, previous_context=None):
         data_str = data.to_string()
-        prompt = f"""Given the following database schema and query results:
+        
+        if previous_context:
+            prompt = f"""Given the following database schema and query results:
+
+Schema:
+{schema_info}
+
+Previous Context:
+{previous_context}
+
+Current Query Results:
+{data_str}
+
+Please answer this follow-up question: {question}"""
+        else:
+            prompt = f"""Given the following database schema and query results:
 
 Schema:
 {schema_info}
@@ -110,6 +125,8 @@ def cli(ctx):
 @click.argument('question')
 @click.option('--analyze/--no-analyze', default=False, 
               help='Whether to analyze the results using the LLM')
+@click.option('--interactive/--no-interactive', default=False,
+              help='Enable interactive follow-up questions')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
 @pass_context
 def query(ctx_obj, file_path, question, analyze, verbose):
@@ -186,6 +203,23 @@ def query(ctx_obj, file_path, question, analyze, verbose):
         analysis = ctx_obj.analyze_results(question, result, schema_info)
         click.echo("\nAnalysis:")
         click.echo(analysis)
+        
+        # Interactive mode for follow-up questions
+        if interactive:
+            previous_context = f"Previous question: {question}\nPrevious analysis: {analysis}"
+            
+            while True:
+                try:
+                    follow_up = click.prompt("\nAsk a follow-up question (or press Ctrl+C to exit)")
+                    follow_up_analysis = ctx_obj.analyze_results(
+                        follow_up, result, schema_info, previous_context
+                    )
+                    click.echo("\nFollow-up Analysis:")
+                    click.echo(follow_up_analysis)
+                    previous_context += f"\n\nFollow-up question: {follow_up}\nFollow-up analysis: {follow_up_analysis}"
+                except (KeyboardInterrupt, click.exceptions.Abort):
+                    click.echo("\nExiting interactive mode...")
+                    break
 
 if __name__ == '__main__':
     cli()
