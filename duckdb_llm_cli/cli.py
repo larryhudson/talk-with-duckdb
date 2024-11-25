@@ -92,6 +92,9 @@ Then provide your final SQL query in <answer></answer> tags."""},
         )
         content = response.choices[0].message.content.strip()
         
+        # Add assistant's response to message history
+        messages.append({"role": "assistant", "content": content})
+        
         # Extract SQL query from <answer> tags
         match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
         if not match:
@@ -124,7 +127,12 @@ Then provide your final SQL query in <answer></answer> tags."""},
             model=self.model,
             messages=messages
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content.strip()
+        
+        # Add assistant's response to message history
+        messages.append({"role": "assistant", "content": content})
+        
+        return content
 
 pass_context = click.make_pass_decorator(DuckLLMContext, ensure=True)
 
