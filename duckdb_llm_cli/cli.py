@@ -1,5 +1,6 @@
 import click
 import duckdb
+import re
 from litellm import completion
 from pathlib import Path
 from dotenv import load_dotenv
@@ -31,13 +32,31 @@ class DuckLLMContext:
 
 Generate a SQL query to answer this question: {question}
 
-Return only the SQL query, nothing else."""
+Think through the solution step by step, putting your reasoning in <reasoning></reasoning> tags.
+Then put your final SQL query in <answer></answer> tags.
+
+For example:
+<reasoning>
+1. First we need to...
+2. Then we should...
+3. Finally we...
+</reasoning>
+<answer>
+SELECT * FROM table;
+</answer>"""
 
         response = completion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}]
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content.strip()
+        
+        # Extract SQL query from <answer> tags
+        match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
+        if not match:
+            raise ValueError("No SQL query found in <answer> tags in the response")
+            
+        return match.group(1).strip()
 
     def analyze_results(self, question, data, schema_info):
         data_str = data.to_string()
