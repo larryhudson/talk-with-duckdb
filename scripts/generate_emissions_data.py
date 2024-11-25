@@ -7,9 +7,13 @@ import random
 np.random.seed(42)
 
 # Constants
-N_RECORDS = 10000
-START_DATE = datetime(2022, 1, 1)
+N_RECORDS = 50000  # Increased to cover 10 years of data
+START_DATE = datetime(2014, 1, 1)
 END_DATE = datetime(2023, 12, 31)
+
+# Growth parameters
+ANNUAL_GROWTH_RATE = 0.15  # 15% annual growth
+RANDOM_GROWTH_VARIANCE = 0.05  # 5% random variance in growth
 
 # Emission factors with their CO2 impact in kg
 EMISSION_FACTORS = {
@@ -119,14 +123,25 @@ def export_reference_data():
     act_df = pd.DataFrame(act_data)
     act_df.to_csv('activities.csv', index=False)
 
+def calculate_growth_factor(date):
+    """Calculate growth factor based on time progression"""
+    years_from_start = (date - START_DATE).days / 365.25
+    # Base growth from compound annual growth
+    base_growth = (1 + ANNUAL_GROWTH_RATE) ** years_from_start
+    # Add random variance
+    random_factor = 1 + np.random.uniform(-RANDOM_GROWTH_VARIANCE, RANDOM_GROWTH_VARIANCE)
+    return base_growth * random_factor
+
 def generate_emissions_data():
     data = []
 
-    # Generate random dates
-    dates = [START_DATE + timedelta(days=int(x)) for x in
-            np.random.randint(0, (END_DATE - START_DATE).days, N_RECORDS)]
-
-    for _ in range(N_RECORDS):
+    # Generate evenly distributed dates
+    date_range = pd.date_range(start=START_DATE, end=END_DATE, periods=N_RECORDS)
+    
+    for date in date_range:
+        # Calculate growth factor for this date
+        growth_factor = calculate_growth_factor(date)
+        
         facility, city, country = random.choice(FACILITIES)
         activity_id = random.choice(list(ACTIVITIES.keys()))
         activity = ACTIVITIES[activity_id]
@@ -135,14 +150,17 @@ def generate_emissions_data():
         emission_factor = EMISSION_FACTORS[activity['emission_factor_id']]
         
         # Generate consumption based on activity's base amount and variance
-        consumption = np.random.normal(activity['base_amount'], activity['variance'])
+        # Apply growth factor to base amount
+        adjusted_base = activity['base_amount'] * growth_factor
+        adjusted_variance = activity['variance'] * growth_factor
+        consumption = np.random.normal(adjusted_base, adjusted_variance)
         consumption = max(0, consumption)  # Ensure no negative values
         
         # Calculate emissions in metric tons CO2e
         emissions = (consumption * emission_factor['kg_co2e']) / 1000  # Convert kg to metric tons
 
         data.append({
-            'date': dates[_],
+            'date': date,
             'facility': facility,
             'city': city,
             'country': country,
