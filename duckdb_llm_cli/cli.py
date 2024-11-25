@@ -90,15 +90,15 @@ def cli(ctx):
 @click.option('--analyze/--no-analyze', default=False, 
               help='Whether to analyze the results using the LLM')
 @pass_context
-def query(ctx, file_path, question, analyze):
+def query(ctx_obj, file_path, question, analyze):
     """Query a DuckDB database using natural language"""
     file_path = Path(file_path)
     
     # Connect to database or create from file
     if file_path.suffix == '.duckdb':
-        ctx.obj.conn = duckdb.connect(str(file_path))
+        ctx_obj.conn = duckdb.connect(str(file_path))
     else:
-        ctx.obj.conn = duckdb.connect(":memory:")
+        ctx_obj.conn = duckdb.connect(":memory:")
         if file_path.suffix in ['.csv', '.parquet']:
             table_name = file_path.stem
             ctx.obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}')")
