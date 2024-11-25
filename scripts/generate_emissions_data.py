@@ -43,7 +43,7 @@ def generate_emissions_data():
     data = []
 
     # Generate random dates
-    dates = [START_DATE + timedelta(days=x) for x in
+    dates = [START_DATE + timedelta(days=int(x)) for x in
             np.random.randint(0, (END_DATE - START_DATE).days, N_RECORDS)]
 
     for _ in range(N_RECORDS):
