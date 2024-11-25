@@ -30,12 +30,42 @@ class DuckLLMContext:
             return ""
         tables = self.conn.execute("SHOW TABLES").fetchall()
         schema_info = []
+        
         for table in tables:
             table_name = table[0]
+            # Get column information
             columns = self.conn.execute(f"DESCRIBE {table_name}").fetchall()
             cols_info = [f"{col[0]} {col[1]}" for col in columns]
-            schema_info.append(f"Table: {table_name}\nColumns: {', '.join(cols_info)}")
-        schema_text = "\n\n".join(schema_info)
+            
+            # Get sample data (first 3 rows)
+            sample_data = self.conn.execute(f"SELECT * FROM {table_name} LIMIT 3").fetchall()
+            sample_str = "\nSample data:"
+            for row in sample_data:
+                sample_str += f"\n  {row}"
+            
+            # Get row count
+            row_count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+            
+            # Detect potential relationships based on column names
+            relationships = []
+            for col in columns:
+                col_name = col[0].lower()
+                if col_name.endswith('_id'):
+                    related_table = col_name.replace('_id', '')
+                    relationships.append(f"Possible foreign key: {col_name} -> {related_table}")
+            
+            table_info = [
+                f"Table: {table_name}",
+                f"Rows: {row_count}",
+                f"Columns: {', '.join(cols_info)}",
+                sample_str
+            ]
+            if relationships:
+                table_info.append("Relationships:\n  " + "\n  ".join(relationships))
+            
+            schema_info.append("\n".join(table_info))
+        
+        schema_text = "\n\n" + "\n\n".join(schema_info)
         if self.verbose:
             click.echo("\nSchema Information:")
             click.echo(schema_text)
