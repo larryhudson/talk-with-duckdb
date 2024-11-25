@@ -11,7 +11,35 @@ N_RECORDS = 10000
 START_DATE = datetime(2022, 1, 1)
 END_DATE = datetime(2023, 12, 31)
 
-# Sample data
+# Emission factors with their CO2 impact in kg
+EMISSION_FACTORS = {
+    'electricity_kwh': {'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.4},  # Grid electricity
+    'natural_gas_therm': {'scope': 'Scope 1', 'unit': 'therms', 'kg_co2e': 5.0},  # Natural gas burning
+    'gasoline_liter': {'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.3},  # Vehicle fuel
+    'diesel_liter': {'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.7},  # Heavy vehicle fuel
+    'flight_short_haul': {'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.15},  # Short flights (<1500km)
+    'flight_long_haul': {'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.11},  # Long flights (>1500km)
+    'rail_travel': {'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.04},  # Train travel
+    'waste_landfill': {'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.5},  # Landfill waste
+    'waste_recycled': {'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.1},  # Recycled waste
+    'water_supply': {'scope': 'Scope 3', 'unit': 'cubic_meters', 'kg_co2e': 0.344},  # Water usage
+}
+
+# Activities that can generate emissions
+ACTIVITIES = {
+    'office_power': {'factor': 'electricity_kwh', 'base_amount': 1000, 'variance': 200},
+    'heating': {'factor': 'natural_gas_therm', 'base_amount': 100, 'variance': 30},
+    'company_cars': {'factor': 'gasoline_liter', 'base_amount': 150, 'variance': 50},
+    'delivery_trucks': {'factor': 'diesel_liter', 'base_amount': 400, 'variance': 100},
+    'business_flights_short': {'factor': 'flight_short_haul', 'base_amount': 800, 'variance': 200},
+    'business_flights_long': {'factor': 'flight_long_haul', 'base_amount': 2000, 'variance': 500},
+    'train_travel': {'factor': 'rail_travel', 'base_amount': 500, 'variance': 100},
+    'general_waste': {'factor': 'waste_landfill', 'base_amount': 1000, 'variance': 200},
+    'recycling': {'factor': 'waste_recycled', 'base_amount': 800, 'variance': 150},
+    'water_consumption': {'factor': 'water_supply', 'base_amount': 100, 'variance': 20},
+}
+
+# Facilities
 FACILITIES = [
     ('HQ', 'New York', 'USA'),
     ('Manufacturing Plant 1', 'Detroit', 'USA'),
@@ -30,15 +58,6 @@ DEPARTMENTS = [
     'IT'
 ]
 
-EMISSION_SOURCES = {
-    'Electricity': ('Scope 2', 'kWh'),
-    'Natural Gas': ('Scope 1', 'therms'),
-    'Vehicle Fleet': ('Scope 1', 'gallons'),
-    'Employee Commuting': ('Scope 3', 'km'),
-    'Waste Management': ('Scope 3', 'tons'),
-    'Business Travel': ('Scope 3', 'km')
-}
-
 def generate_emissions_data():
     data = []
 
@@ -48,34 +67,18 @@ def generate_emissions_data():
 
     for _ in range(N_RECORDS):
         facility, city, country = random.choice(FACILITIES)
-        source = random.choice(list(EMISSION_SOURCES.keys()))
-        scope, unit = EMISSION_SOURCES[source]
-
-        # Generate realistic consumption values based on source
-        if source == 'Electricity':
-            consumption = np.random.normal(50000, 10000)
-        elif source == 'Natural Gas':
-            consumption = np.random.normal(2000, 500)
-        elif source == 'Vehicle Fleet':
-            consumption = np.random.normal(500, 100)
-        elif source == 'Employee Commuting':
-            consumption = np.random.normal(1000, 200)
-        elif source == 'Waste Management':
-            consumption = np.random.normal(50, 10)
-        else:  # Business Travel
-            consumption = np.random.normal(2000, 500)
-
-        # Calculate emissions (simplified conversion factors)
-        if source == 'Electricity':
-            emissions = consumption * 0.0004  # kWh to metric tons CO2
-        elif source == 'Natural Gas':
-            emissions = consumption * 0.005  # therms to metric tons CO2
-        elif source == 'Vehicle Fleet':
-            emissions = consumption * 0.008  # gallons to metric tons CO2
-        elif source in ['Employee Commuting', 'Business Travel']:
-            emissions = consumption * 0.0002  # km to metric tons CO2
-        else:  # Waste Management
-            emissions = consumption * 0.1  # tons to metric tons CO2
+        activity_name = random.choice(list(ACTIVITIES.keys()))
+        activity = ACTIVITIES[activity_name]
+        
+        # Get corresponding emission factor
+        emission_factor = EMISSION_FACTORS[activity['factor']]
+        
+        # Generate consumption based on activity's base amount and variance
+        consumption = np.random.normal(activity['base_amount'], activity['variance'])
+        consumption = max(0, consumption)  # Ensure no negative values
+        
+        # Calculate emissions in metric tons CO2e
+        emissions = (consumption * emission_factor['kg_co2e']) / 1000  # Convert kg to metric tons
 
         data.append({
             'date': dates[_],
@@ -83,10 +86,11 @@ def generate_emissions_data():
             'city': city,
             'country': country,
             'department': random.choice(DEPARTMENTS),
-            'emission_source': source,
-            'scope': scope,
+            'activity': activity_name,
+            'emission_source': activity['factor'],
+            'scope': emission_factor['scope'],
             'consumption_value': round(consumption, 2),
-            'consumption_unit': unit,
+            'consumption_unit': emission_factor['unit'],
             'emissions_mt_co2e': round(emissions, 3)
         })
 
