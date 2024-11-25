@@ -9,6 +9,69 @@ import hashlib
 
 load_dotenv()
 
+def fill_prompt(schema, question):
+    return """
+You are an AI assistant specialized in generating SQL queries for a DuckDB database based on natural language questions from users. Your primary goal is to help users explore and gain insights from their data.
+
+First, familiarize yourself with the schema of the database you will be querying:
+
+<schema>
+{schema}
+</schema>
+
+When a user asks a question, your task is to write an SQL query that answers their question and helps them explore the data. Follow these guidelines:
+
+1. Analyze the user's question and the database schema to determine relevant tables and columns.
+2. Write a clear and efficient SQL query that answers the user's question.
+3. Prioritize data exploration by returning queries that provide meaningful insights.
+4. Use advanced SQL features when appropriate (e.g., JOINs, GROUP BY, HAVING, subqueries, window functions).
+5. If the question is vague or open to multiple interpretations, choose the one that will provide the most interesting or useful data exploration.
+6. Limit the number of rows returned to 10 by default, unless specifically asked for more or fewer results.
+7. If the question cannot be answered with the given schema, explain why and suggest a related query that might be helpful.
+
+When you receive a question, follow these steps:
+
+1. Analyze the question and relevant schema elements in <query_planning></query_planning> tags.
+2. Write your SQL query in <answer></answer> tags.
+3. Provide a brief explanation of what the query does and how it answers the user's question after the <answer> tags.
+
+Here's an example of how your response should be structured:
+
+<query_planning>
+[Your thought process, including:
+a. Identify key tables and columns relevant to the question
+b. List potential JOIN conditions
+c. Outline filtering criteria
+d. Consider aggregation or grouping needs
+e. Determine appropriate sorting]
+</query_planning>
+
+<answer>
+SELECT column1, column2
+FROM table1
+JOIN table2 ON table1.id = table2.id
+WHERE condition
+LIMIT 10;
+</answer>
+
+Explanation: This query joins table1 and table2 on their id columns, selects column1 and column2, filters the results based on the specified condition, and limits the output to 10 rows. It answers the user's question by [brief explanation of how it addresses the user's needs].
+
+Now, here's the user's question:
+
+<question>
+{question}
+</question>
+
+Please provide your response following the structure outlined above. After your initial response, be prepared for follow-up questions. For each follow-up:
+
+1. Consider how it relates to the previous query and results.
+2. Modify your previous query or write a new one to address the follow-up question.
+3. Follow the same output format as the initial response.
+
+Remember, your goal is to help the user explore the data and gain valuable insights through thoughtful and effective SQL queries.
+"""
+
+
 class DuckLLMContext:
     def __init__(self):
         self.conn = None
@@ -73,11 +136,7 @@ class DuckLLMContext:
 
     def generate_sql(self, question, schema_info):
         messages = [
-            {"role": "system", "content": """You are a SQL expert that helps convert natural language questions into SQL queries.
-Always think through the solution step by step and explain your reasoning in <reasoning></reasoning> tags.
-Then provide your final SQL query in <answer></answer> tags."""},
-            {"role": "user", "content": f"Here is the database schema:\n\n{schema_info}"},
-            {"role": "user", "content": f"Generate a SQL query to answer this question: {question}"}
+            {"role": "user", "content": fill_prompt(schema_info, question)},
         ]
 
         if self.verbose:
@@ -90,6 +149,7 @@ Then provide your final SQL query in <answer></answer> tags."""},
             model=self.model,
             messages=messages
         )
+
         content = response.choices[0].message.content.strip()
         
         # Add assistant's response to message history
@@ -111,9 +171,6 @@ Then provide your final SQL query in <answer></answer> tags."""},
             {"role": "user", "content": f"Here are the query results:\n\n{data_str}"}
         ]
         
-        if previous_context:
-            messages.append({"role": "user", "content": f"Previous context:\n{previous_context}"})
-            messages.append({"role": "user", "content": f"Please answer this follow-up question: {question}"})
         else:
             messages.append({"role": "user", "content": f"Please analyze these results to answer: {question}"})
 
@@ -170,7 +227,7 @@ def query(ctx_obj, file_path, question, analyze, interactive, verbose):
             click.echo("Created in-memory database")
         if file_path.suffix == '.csv':
             if verbose:
-                click.echo(f"Processing CSV file...")
+                click.echo("Processing CSV file...")
             
             # Get the directory containing the main CSV file
             data_dir = file_path.parent
@@ -188,7 +245,7 @@ def query(ctx_obj, file_path, question, analyze, interactive, verbose):
                 ctx_obj.conn.execute(f"CREATE TABLE {main_table} AS SELECT * FROM parquet_scan('{cache_path}')")
             else:
                 if verbose:
-                    click.echo(f"Creating new Parquet cache from CSV...")
+                    click.echo("Creating new Parquet cache from CSV...")
                 ctx_obj.conn.execute(f"""
                     CREATE TABLE {main_table} AS SELECT * FROM read_csv_auto('{file_path}');
                     COPY (SELECT * FROM {main_table}) TO '{cache_path}' (FORMAT PARQUET);
@@ -218,7 +275,7 @@ def query(ctx_obj, file_path, question, analyze, interactive, verbose):
                 click.echo(f"Created table: {main_table}")
         elif file_path.suffix == '.parquet':
             if verbose:
-                click.echo(f"Loading Parquet file into memory...")
+                click.echo("Loading Parquet file into memory...")
             table_name = file_path.stem
             ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM parquet_scan('{file_path}')")
             if verbose:
