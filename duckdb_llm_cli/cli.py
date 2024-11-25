@@ -5,6 +5,7 @@ from litellm import completion
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import hashlib
 
 load_dotenv()
 
@@ -13,6 +14,16 @@ class DuckLLMContext:
         self.conn = None
         self.model = os.getenv("LLM_MODEL", "gpt-4")  # Default to GPT-4 but allow override
         self.verbose = False
+        self.cache_dir = Path.home() / ".duckdb_llm" / "cache"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_parquet_cache_path(self, file_path: Path) -> Path:
+        """Generate a unique cache file path for the input file"""
+        # Create hash of the original file path and modification time
+        file_stat = file_path.stat()
+        hash_input = f"{file_path.absolute()}{file_stat.st_mtime}"
+        file_hash = hashlib.md5(hash_input.encode()).hexdigest()
+        return self.cache_dir / f"{file_path.stem}_{file_hash}.parquet"
 
     def get_schema_info(self):
         if not self.conn:
@@ -118,11 +129,35 @@ def query(ctx_obj, file_path, question, analyze, verbose):
         ctx_obj.conn = duckdb.connect(":memory:")
         if verbose:
             click.echo("Created in-memory database")
-        if file_path.suffix in ['.csv', '.parquet']:
+        if file_path.suffix == '.csv':
             if verbose:
-                click.echo(f"Loading {file_path.suffix} file into memory...")
+                click.echo(f"Processing CSV file...")
+            
             table_name = file_path.stem
-            ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}')")
+            cache_path = ctx_obj.get_parquet_cache_path(file_path)
+            
+            if cache_path.exists():
+                if verbose:
+                    click.echo(f"Using cached Parquet file: {cache_path}")
+                ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM parquet_scan('{cache_path}')")
+            else:
+                if verbose:
+                    click.echo(f"Creating new Parquet cache from CSV...")
+                # Load CSV and create Parquet cache
+                ctx_obj.conn.execute(f"""
+                    CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}');
+                    COPY (SELECT * FROM {table_name}) TO '{cache_path}' (FORMAT PARQUET);
+                """)
+                if verbose:
+                    click.echo(f"Created Parquet cache: {cache_path}")
+            
+            if verbose:
+                click.echo(f"Created table: {table_name}")
+        elif file_path.suffix == '.parquet':
+            if verbose:
+                click.echo(f"Loading Parquet file into memory...")
+            table_name = file_path.stem
+            ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM parquet_scan('{file_path}')")
             if verbose:
                 click.echo(f"Created table: {table_name}")
     
