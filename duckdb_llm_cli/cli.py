@@ -193,7 +193,7 @@ def query(ctx_obj, file_path, question, analyze, interactive, verbose):
                 )
             
             if verbose:
-                click.echo(f"Created table: {table_name}")
+                click.echo(f"Created table: {main_table}")
         elif file_path.suffix == '.parquet':
             if verbose:
                 click.echo(f"Loading Parquet file into memory...")
