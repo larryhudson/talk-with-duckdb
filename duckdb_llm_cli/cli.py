@@ -129,7 +129,7 @@ def cli(ctx):
               help='Enable interactive follow-up questions')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
 @pass_context
-def query(ctx_obj, file_path, question, analyze, verbose):
+def query(ctx_obj, file_path, question, analyze, interactive, verbose):
     """Query a DuckDB database using natural language"""
     file_path = Path(file_path)
     ctx_obj.verbose = verbose
