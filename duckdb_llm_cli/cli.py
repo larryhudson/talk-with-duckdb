@@ -1,6 +1,6 @@
 import click
 import duckdb
-import openai
+from litellm import completion
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -10,7 +10,7 @@ load_dotenv()
 class DuckLLMContext:
     def __init__(self):
         self.conn = None
-        self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.model = os.getenv("LLM_MODEL", "gpt-4")  # Default to GPT-4 but allow override
 
     def get_schema_info(self):
         if not self.conn:
@@ -33,8 +33,8 @@ Generate a SQL query to answer this question: {question}
 
 Return only the SQL query, nothing else."""
 
-        response = self.client.chat.completions.create(
-            model="gpt-4",
+        response = completion(
+            model=self.model,
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content.strip()
@@ -51,8 +51,8 @@ Query Results:
 
 Please answer this question: {question}"""
 
-        response = self.client.chat.completions.create(
-            model="gpt-4",
+        response = completion(
+            model=self.model,
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content.strip()
