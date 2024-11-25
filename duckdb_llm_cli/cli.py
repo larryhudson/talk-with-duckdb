@@ -89,24 +89,44 @@ def cli(ctx):
 @click.argument('question')
 @click.option('--analyze/--no-analyze', default=False, 
               help='Whether to analyze the results using the LLM')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
 @pass_context
-def query(ctx_obj, file_path, question, analyze):
+def query(ctx_obj, file_path, question, analyze, verbose):
     """Query a DuckDB database using natural language"""
     file_path = Path(file_path)
+    
+    if verbose:
+        click.echo("Connecting to database...")
     
     # Connect to database or create from file
     if file_path.suffix == '.duckdb':
         ctx_obj.conn = duckdb.connect(str(file_path))
+        if verbose:
+            click.echo(f"Connected to DuckDB file: {file_path}")
     else:
         ctx_obj.conn = duckdb.connect(":memory:")
+        if verbose:
+            click.echo("Created in-memory database")
         if file_path.suffix in ['.csv', '.parquet']:
+            if verbose:
+                click.echo(f"Loading {file_path.suffix} file into memory...")
             table_name = file_path.stem
             ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}')")
+            if verbose:
+                click.echo(f"Created table: {table_name}")
     
-    # Get schema info and generate SQL
+    if verbose:
+        click.echo("\nGathering schema information...")
     schema_info = ctx_obj.get_schema_info()
+    if verbose:
+        click.echo("Schema information gathered")
+        click.echo("\nGenerating SQL query...")
+    
     sql_query = ctx_obj.generate_sql(question, schema_info)
     click.echo(f"Generated SQL:\n{sql_query}\n")
+    
+    if verbose:
+        click.echo("Executing query...")
     
     # Execute query
     result = ctx_obj.conn.execute(sql_query).df()
@@ -115,6 +135,8 @@ def query(ctx_obj, file_path, question, analyze):
     
     # Optionally analyze results
     if analyze:
+        if verbose:
+            click.echo("\nAnalyzing results...")
         analysis = ctx_obj.analyze_results(question, result, schema_info)
         click.echo("\nAnalysis:")
         click.echo(analysis)
