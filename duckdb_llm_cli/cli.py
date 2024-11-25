@@ -79,6 +79,7 @@ class DuckLLMContext:
         self.verbose = False
         self.cache_dir = Path.home() / ".duckdb_llm" / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.messages = []  # Store conversation history
 
     def get_parquet_cache_path(self, file_path: Path) -> Path:
         """Generate a unique cache file path for the input file"""
@@ -135,25 +136,26 @@ class DuckLLMContext:
         return schema_text
 
     def generate_sql(self, question, schema_info):
-        messages = [
+        # Reset conversation history for new query
+        self.messages = [
             {"role": "user", "content": fill_prompt(schema_info, question)},
         ]
 
         if self.verbose:
             click.echo("\nSending messages to LLM:")
-            for msg in messages:
+            for msg in self.messages:
                 click.echo(f"\n{msg['role']}: {msg['content']}")
             click.echo("\nWaiting for LLM response...")
 
         response = completion(
             model=self.model,
-            messages=messages
+            messages=self.messages
         )
 
         content = response.choices[0].message.content.strip()
         
         # Add assistant's response to message history
-        messages.append({"role": "assistant", "content": content})
+        self.messages.append({"role": "assistant", "content": content})
         
         # Extract SQL query from <answer> tags
         match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
@@ -162,32 +164,31 @@ class DuckLLMContext:
             
         return match.group(1).strip()
 
-    def analyze_results(self, question, data, schema_info, previous_context=None):
+    def analyze_results(self, question, data, schema_info):
         data_str = data.to_string()
         
-        messages = [
+        # Add analysis request to conversation history
+        self.messages.extend([
             {"role": "system", "content": "You are a data analyst expert that helps analyze and explain SQL query results."},
             {"role": "user", "content": f"Here is the database schema:\n\n{schema_info}"},
-            {"role": "user", "content": f"Here are the query results:\n\n{data_str}"}
-        ]
-        
-        else:
-            messages.append({"role": "user", "content": f"Please analyze these results to answer: {question}"})
+            {"role": "user", "content": f"Here are the query results:\n\n{data_str}"},
+            {"role": "user", "content": f"Please analyze these results to answer: {question}"}
+        ])
 
         if self.verbose:
             click.echo("\nSending messages to LLM:")
-            for msg in messages:
+            for msg in self.messages:
                 click.echo(f"\n{msg['role']}: {msg['content']}")
             click.echo("\nWaiting for LLM response...")
 
         response = completion(
             model=self.model,
-            messages=messages
+            messages=self.messages
         )
         content = response.choices[0].message.content.strip()
         
         # Add assistant's response to message history
-        messages.append({"role": "assistant", "content": content})
+        self.messages.append({"role": "assistant", "content": content})
         
         return content
 
