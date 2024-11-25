@@ -13,16 +13,49 @@ END_DATE = datetime(2023, 12, 31)
 
 # Emission factors with their CO2 impact in kg
 EMISSION_FACTORS = {
-    'EF001': {'name': 'electricity_kwh', 'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.4, 'description': 'Grid electricity'},
-    'EF002': {'name': 'natural_gas_therm', 'scope': 'Scope 1', 'unit': 'therms', 'kg_co2e': 5.0, 'description': 'Natural gas burning'},
-    'EF003': {'name': 'gasoline_liter', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.3, 'description': 'Vehicle fuel'},
-    'EF004': {'name': 'diesel_liter', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.7, 'description': 'Heavy vehicle fuel'},
-    'EF005': {'name': 'flight_short_haul', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.15, 'description': 'Short flights (<1500km)'},
-    'EF006': {'name': 'flight_long_haul', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.11, 'description': 'Long flights (>1500km)'},
-    'EF007': {'name': 'rail_travel', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.04, 'description': 'Train travel'},
-    'EF008': {'name': 'waste_landfill', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.5, 'description': 'Landfill waste'},
-    'EF009': {'name': 'waste_recycled', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.1, 'description': 'Recycled waste'},
-    'EF010': {'name': 'water_supply', 'scope': 'Scope 3', 'unit': 'cubic_meters', 'kg_co2e': 0.344, 'description': 'Water usage'}
+    # Electricity by region (Scope 2)
+    'EF001': {'name': 'electricity_usa', 'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.42, 'description': 'US Grid electricity', 'region': 'USA'},
+    'EF002': {'name': 'electricity_eu', 'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.23, 'description': 'EU Grid electricity', 'region': 'EU'},
+    'EF003': {'name': 'electricity_china', 'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.61, 'description': 'China Grid electricity', 'region': 'China'},
+    'EF004': {'name': 'electricity_india', 'scope': 'Scope 2', 'unit': 'kWh', 'kg_co2e': 0.82, 'description': 'India Grid electricity', 'region': 'India'},
+    
+    # Stationary combustion (Scope 1)
+    'EF010': {'name': 'natural_gas_therm', 'scope': 'Scope 1', 'unit': 'therms', 'kg_co2e': 5.3, 'description': 'Natural gas burning'},
+    'EF011': {'name': 'diesel_generator', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.68, 'description': 'Diesel generator'},
+    'EF012': {'name': 'lpg_stationary', 'scope': 'Scope 1', 'unit': 'kg', 'kg_co2e': 2.98, 'description': 'LPG stationary combustion'},
+    
+    # Vehicle fleet (Scope 1)
+    'EF020': {'name': 'gasoline_car', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.31, 'description': 'Passenger car - gasoline'},
+    'EF021': {'name': 'diesel_car', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.68, 'description': 'Passenger car - diesel'},
+    'EF022': {'name': 'electric_car', 'scope': 'Scope 1', 'unit': 'kWh', 'kg_co2e': 0.0, 'description': 'Electric vehicle charging'},
+    'EF023': {'name': 'hybrid_car', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.15, 'description': 'Hybrid vehicle'},
+    'EF024': {'name': 'heavy_truck_diesel', 'scope': 'Scope 1', 'unit': 'liters', 'kg_co2e': 2.72, 'description': 'Heavy goods vehicle'},
+    
+    # Business travel (Scope 3)
+    'EF030': {'name': 'flight_domestic', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.18, 'description': 'Domestic flights (<500km)'},
+    'EF031': {'name': 'flight_short_haul', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.15, 'description': 'Short-haul flights (500-1500km)'},
+    'EF032': {'name': 'flight_long_haul_economy', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.11, 'description': 'Long-haul flights economy'},
+    'EF033': {'name': 'flight_long_haul_business', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.32, 'description': 'Long-haul flights business'},
+    'EF034': {'name': 'rail_travel_electric', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.03, 'description': 'Electric train travel'},
+    'EF035': {'name': 'rail_travel_diesel', 'scope': 'Scope 3', 'unit': 'km', 'kg_co2e': 0.07, 'description': 'Diesel train travel'},
+    
+    # Waste management (Scope 3)
+    'EF040': {'name': 'waste_landfill_usa', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.58, 'description': 'Landfill waste USA', 'region': 'USA'},
+    'EF041': {'name': 'waste_landfill_eu', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.48, 'description': 'Landfill waste EU', 'region': 'EU'},
+    'EF042': {'name': 'waste_recycled_paper', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.08, 'description': 'Recycled paper waste'},
+    'EF043': {'name': 'waste_recycled_plastic', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.12, 'description': 'Recycled plastic waste'},
+    'EF044': {'name': 'waste_incinerated', 'scope': 'Scope 3', 'unit': 'kg', 'kg_co2e': 0.58, 'description': 'Incinerated waste'},
+    
+    # Water and refrigerants (Scope 3)
+    'EF050': {'name': 'water_supply', 'scope': 'Scope 3', 'unit': 'cubic_meters', 'kg_co2e': 0.344, 'description': 'Water supply'},
+    'EF051': {'name': 'water_treatment', 'scope': 'Scope 3', 'unit': 'cubic_meters', 'kg_co2e': 0.708, 'description': 'Water treatment'},
+    'EF052': {'name': 'refrigerant_r410a', 'scope': 'Scope 1', 'unit': 'kg', 'kg_co2e': 2088.0, 'description': 'R410A refrigerant leakage'},
+    'EF053': {'name': 'refrigerant_r134a', 'scope': 'Scope 1', 'unit': 'kg', 'kg_co2e': 1430.0, 'description': 'R134A refrigerant leakage'},
+    
+    # Manufacturing processes (Scope 1)
+    'EF060': {'name': 'steel_production', 'scope': 'Scope 1', 'unit': 'tonnes', 'kg_co2e': 1800.0, 'description': 'Steel manufacturing'},
+    'EF061': {'name': 'cement_production', 'scope': 'Scope 1', 'unit': 'tonnes', 'kg_co2e': 900.0, 'description': 'Cement production'},
+    'EF062': {'name': 'aluminum_production', 'scope': 'Scope 1', 'unit': 'tonnes', 'kg_co2e': 1600.0, 'description': 'Aluminum production'}
 }
 
 # Activities that can generate emissions
