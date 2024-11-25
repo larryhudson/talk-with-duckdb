@@ -101,21 +101,21 @@ def query(ctx_obj, file_path, question, analyze):
         ctx_obj.conn = duckdb.connect(":memory:")
         if file_path.suffix in ['.csv', '.parquet']:
             table_name = file_path.stem
-            ctx.obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}')")
+            ctx_obj.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{file_path}')")
     
     # Get schema info and generate SQL
-    schema_info = ctx.obj.get_schema_info()
-    sql_query = ctx.obj.generate_sql(question, schema_info)
+    schema_info = ctx_obj.get_schema_info()
+    sql_query = ctx_obj.generate_sql(question, schema_info)
     click.echo(f"Generated SQL:\n{sql_query}\n")
     
     # Execute query
-    result = ctx.obj.conn.execute(sql_query).df()
+    result = ctx_obj.conn.execute(sql_query).df()
     click.echo("Results:")
     click.echo(result)
     
     # Optionally analyze results
     if analyze:
-        analysis = ctx.obj.analyze_results(question, result, schema_info)
+        analysis = ctx_obj.analyze_results(question, result, schema_info)
         click.echo("\nAnalysis:")
         click.echo(analysis)
 
