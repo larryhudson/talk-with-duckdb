@@ -11,3 +11,6 @@ dependencies = [
     "pandas>=2.2.3",
     "python-dotenv>=1.0.1"
 ]
+
+[project.scripts]
+duckdb-llm = "duckdb_llm_cli.cli:cli"
